@@ -4,13 +4,66 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================================================== */
   function initActiveNav() {
     const listItems = document.querySelectorAll(".list li");
+    const header = document.querySelector("header");
 
-    listItems.forEach((item) => {
-      item.addEventListener("click", () => {
-        listItems.forEach((li) => li.classList.remove("active"));
-        item.classList.add("active");
+    const sections = [...listItems]
+      .map((item) => {
+        const link = item.querySelector('a[href^="#"]');
+        const id = link?.getAttribute("href").slice(1);
+        const section = id ? document.getElementById(id) : null;
+
+        return section ? { item, section } : null;
+      })
+      .filter(Boolean);
+
+    if (!sections.length) return;
+
+    function updateActive() {
+      const headerHeight = header?.getBoundingClientRect().height ?? 0;
+      let current = sections[0];
+
+      sections.forEach((entry) => {
+        if (entry.section.getBoundingClientRect().top <= headerHeight + 40) {
+          current = entry;
+        }
       });
-    });
+
+      // Garante a seleção da última seção no final da página.
+      const atBottom =
+        window.scrollY + window.innerHeight >=
+        document.documentElement.scrollHeight - 2;
+
+      if (atBottom && window.scrollY > 0) {
+        current = sections[sections.length - 1];
+      }
+
+      listItems.forEach((item) => {
+        item.classList.toggle("active", item === current.item);
+      });
+    }
+
+    let scheduled = false;
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (scheduled) return;
+
+        scheduled = true;
+
+        requestAnimationFrame(() => {
+          updateActive();
+          scheduled = false;
+        });
+      },
+      { passive: true },
+    );
+
+    window.addEventListener("resize", updateActive);
+    window.addEventListener("load", updateActive);
+    window.addEventListener("pageshow", updateActive);
+
+    updateActive();
   }
 
   /* ==========================================================
